@@ -1,0 +1,27 @@
+I. Mémoires et thèses
+Sur ProQuest (toutes les bases de données), aller dans la section «Thèses et mémoires» et rechercher «francophonie OR francophones». Alternativement, on peut directement chercher «(francophonie OR francophones) AND stype.exact("Dissertations & Theses")». Ceci devrait donner 12 870 résultats. Or, ProQuest ne peut afficher que 10 000 résultats par quête. Il est alors nécessaire d'utiliser des filtres pour obtenir un nombre plus petit.
+
+En filtrant par les langues, on obtient:
+- 5892 résultats en français;
+- 6921 résultats en anglais;
+- 86 résultats en portugais;
+- 47 résultats en espagnol;
+- 32 résultats en turc;
+- 24 résultats en d'autres langues.
+
+Ceci revient à un total de 13 002 résultats. Il y aurait donc des documents bilingues et/ou des doublons.
+
+Pour exporter les résultats en format .xls, il faut d'abord défiler l'écran jusqu'au bas  pour sélectionner l'option d'afficher 100 éléments par page. Puis, il faut cocher l'option de tout sélectionner au haut de la page. Il faut ensuite se rendre à la prochaine page pour sélectionner les 100 prochains documents, et ainsi de suite, pour obtenir 500 résultats. Il est possible d'en sélectionner plus, mais ProQuest a tendance à faire des erreurs avec plus de 500 sélections. Finalement, les trois petits points en haut à droite de la page donnent toutes les options de sauvegarde et exportation; il faut simplement choisir le format .xls. Il faut aussi cocher l'option de «désélectionner les éléments au terme de la procédure» avant de continuer. Un nouveau onglet s'ouvrira et le téléchargement devrait se faire automatiquement à l'intérieur de quelques minutes.
+
+
+
+II. Articles de fond & publications académiques
+-- Mots de la recherche (identiques)
+
+-- Toutes les bases de données de ProQuest
+-- Articles de fond
+-- Publications académiques
+
+
+
+
