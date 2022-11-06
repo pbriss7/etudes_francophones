@@ -150,12 +150,11 @@ cities_regex <- paste0(large_cities$name, collapse = "\\b|\\b")
 # Importation d'un tableau avec tous les noms de pays (extension countryname)+création regex
 
 library(spData)
+data(world)
+world_poly <- spData::world %>% as.data.table()
 
-spData::world
-world_poly <- spData::world
 
 world_poly <- world_poly %>% select(iso_a2, name_long, continent, geom)
-setDT(world_poly)
 
 setnames(world_poly, new = c("iso_a2", "nom_pays", "continent", "geom"))
 
@@ -166,12 +165,10 @@ world_poly[, nom_pays:=nom_pays %>% str_replace_all(
     "Russian Federation"="(Russian Federation)|(Russia)",
     "The Gambia"="Gambia",
     "Dem. Rep. Korea"="(Dem\\.?|DR|D\\.R(ep)?\\.)(ocratic\\s|\\s(Rep\\.?\\s)|\\s(of\\s)?Korea)\\s?(Republic)?\\s?(of)?(\\sKorea)?(Korea)?|North Korea",
-    "Republic of Korea"="(Rep\\.?(ublic)?\\sof\\s)|(South\\s)?Korea"))]
-
-world_poly[1:100]
+    "Republic of Korea"="(?<!North )Korea\\b"))]
 
 country_regex <- paste0(world_poly$nom_pays, collapse = "\\b|\\b")
-
+country_regex_less_Algeria <- paste0(world_poly$nom_pays[-83], collapse = "\\b|\\b")
 
 # Création d'une regex pour continents
 continents_names <-
@@ -205,6 +202,7 @@ setcolorder(
   )
 )
 
+corpus_abs_tr_en[, StoreId:=(StoreId/1)]
 
 # Élimination de toutes les parenthèses
 corpus_abs_tr_en[, `:=`(
@@ -237,11 +235,11 @@ corpus_abs_tr_en[, continents := lapply(continents, unique)]
 
 # Séparation des modalités multiples de certaines observations en de multiples colonnes dans OpenRefine
 fwrite(corpus_abs_tr_en,
-       "donnees/20221105_PB_corpus_traduit_georeference.csv")
+       "donnees/20221106_PB_corpus_traduit_georeference.csv")
 
 # Importation de la structure enrichie
 corpus_abs_tr_en_sep <-
-  fread("donnees/20221105-PB-corpus-traduit-georeference-separe.csv")
+  fread("donnees/20221106-PB-corpus-traduit-georeference-separe.csv")
 
 
 # Élimination des notices sans titre
@@ -279,6 +277,9 @@ ggplot(pays_melt[, .N, "nom_pays"][order(N, decreasing = T)][1:25][!nom_pays ==
   xlab(NULL)
 
 ggsave("resultats/20221105_PB_Distrib_pays_resumes_barplot.png", dpi = 300)
+
+pays_melt_N <- pays_melt[, .N, "nom_pays"][order(N, decreasing = T)]
+tous_pays_N <- paste(pays_melt_N$nom_pays, pays_melt_N$N, sep = "; ", collapse =" ")
 
 # Liste de tous les continents accompagnés des identifiants
 continent_melt <- melt(
@@ -360,11 +361,9 @@ world <- map_data("world")
 
 # Carte des pays cités dans les résumés en anglais
 setDT(pays_melt_geo)
-pays_melt_geo
 
 # Données agrégées
 pays_melt_geo_N <- pays_melt_geo[, .N, by=list(nom_pays)][order(N, decreasing = T)]
-
 
 
 pays_melt_geo_N[nom_pays=="Brunei", nom_pays:="Brunei Darussalam"]
@@ -373,16 +372,67 @@ pays_melt_geo_N[nom_pays=="French Guiana", nom_pays:="Guyana"]
 pays_melt_geo_N[nom_pays=="Gambia", nom_pays:="The Gambia"]
 pays_melt_geo_N[nom_pays=="North Korea", nom_pays:="Republic of Korea"]
 pays_melt_geo_N[nom_pays=="Russia", nom_pays:="Russian Federation"]
-pays_melt_geo_N[nom_pays=="South Korea", nom_pays:="Dem. Rep. Korea"]
+pays_melt_geo_N[nom_pays=="South Korea", nom_pays:="(Dem. Rep. )?Korea"]
 pays_melt_geo_N[nom_pays=="Mauritius", nom_pays:="Mauritania"]
-
 
 
 pays_poly <- merge(world_poly, pays_melt_geo_N, by.x="nom_pays", by.y= "nom_pays", all.x=FALSE, all.y=TRUE)
 pays_poly <- pays_poly[!is.na(iso_a2)]
 
 
-# 
+# Transformer les StoreId de integer64 à numeric
+pays_melt[, StoreId:=(StoreId/1)]
+uniqueN(pays_melt$StoreId)
+
+store_id_pays_melt_france <- pays_melt[nom_pays == "France", .(StoreId)]
+cooc_pays_france <- pays_melt[StoreId %in% store_id_pays_melt_france$StoreId & nom_pays != "France"]
+
+store_id_pays_melt_Canada <- pays_melt[nom_pays == "Canada", .(StoreId)]
+cooc_pays_Canada <- pays_melt[StoreId %in% store_id_pays_melt_Canada$StoreId & nom_pays != "Canada"]
+
+store_id_pays_melt_Belgium <- pays_melt[nom_pays == "Belgium", .(StoreId)]
+cooc_pays_Belgium <- pays_melt[StoreId %in% store_id_pays_melt_Belgium$StoreId & nom_pays != "Belgium"]
+
+store_id_pays_melt_US <- pays_melt[nom_pays == "United States", .(StoreId)]
+cooc_pays_US <- pays_melt[StoreId %in% store_id_pays_melt_US$StoreId & nom_pays != "United States"]
+
+
+store_id_pays_melt_Algerie <- pays_melt[nom_pays == "Algeria", .(StoreId)]
+cooc_pay_Algerie <- pays_melt[StoreId %in% store_id_pays_melt_Algerie$StoreId & nom_pays != "Algeria"]
+
+
+freq_cooc_pays <- data.table(pays = c("France", "Canada", "Belgique", "États-Unis", "Algérie"),
+           freq_documentaire = c(nrow(store_id_pays_melt_france),
+                                 nrow(store_id_pays_melt_Canada),
+                                 nrow(store_id_pays_melt_Belgium),
+                                 nrow(store_id_pays_melt_US),
+                                 nrow(store_id_pays_melt_Algerie)),
+           cooccurrence = c(length(unique(cooc_pays_france$StoreId)),
+                            length(unique(cooc_pays_Canada$StoreId)),
+                            length(unique(cooc_pays_Belgium$StoreId)),
+                            length(unique(cooc_pays_US$StoreId)),
+                            length(unique(cooc_pay_Algerie$StoreId))),
+           taux_cooccurrence = c(round(length(unique(cooc_pays_france$StoreId))/nrow(store_id_pays_melt_france), 2),
+                                 round(length(unique(cooc_pays_Canada$StoreId))/nrow(store_id_pays_melt_Canada), 2),
+                                 round(length(unique(cooc_pays_Belgium$StoreId))/nrow(store_id_pays_melt_Belgium), 2),
+                                 round(length(unique(cooc_pays_US$StoreId))/nrow(store_id_pays_melt_US), 2),
+                                 round(length(unique(cooc_pay_Algerie$StoreId))/nrow(store_id_pays_melt_Algerie), 2))
+           )
+
+
+freq_cooc_pays_gt <- gt(freq_cooc_pays)|>tab_header(
+  title = "Tableau comparatif des cooccurrences de pays dans les résumés")|>
+  cols_label(pays = "Pays",
+             freq_documentaire = "Fréquence documentaire",
+             cooccurrence = "Cooccurre avec autre pays",
+             taux_cooccurrence = "Taux de cooccurrence")|>
+  tab_source_note(
+    source_note = md("Données: ProQuest, 2022")
+  )
+freq_cooc_pays_gt|>gtsave(filename = "resultats/20221106_PB_freq_cooc_pays_gt.png")
+
+
+
 # # Transformation des lon/lat en simple feature (SF)
 library(sf)
 # pays_melt_geo_N_sf <- pays_melt_geo_N %>%
@@ -410,8 +460,14 @@ mapview_pays <- pays_poly_sf[, c("nom_pays", "N", "geom")] %>%
   mapview(zcol = "N",
           color = "black",
           layer.name = "Nombre documents",
-          label = pays_poly_sf$nom_pays
+          label = FALSE,
+          alpha.regions = 0.4
           )
+
+# # install.packages("leafem")
+# # library(leafem)
+# addStaticLabels(mapview_pays, pays_poly_sf[, c("nom_pays", "N", "geom")],
+#                 label=pays_poly_sf[, c("nom_pays", "N", "geom")]$N)
 
 mapshot(mapview_pays, url = "resultats/20221105_PB_carte_pays_resumes.html")
 
@@ -433,11 +489,46 @@ mapview_continent <- continents_poly_N_sf[, c("CONTINENT", "N", "geometry")] %>%
   mapview(zcol = "N",
           color = "black",
           layer.name = "Nombre documents",
-          label = continents_poly_N_sf$CONTINENT
+          label = TRUE,
+          alpha.regions = 0.6
   )
 
 
 mapshot(mapview_continent, url = "resultats/20221105_PB_carte_continents_resumes.html")
+
+
+# Construction d'un concordancier
+
+all_abstracts <- paste(corpus_abs_tr_en_sep$Abs_tr_en_unaccent, collapse = " ")
+
+library(quanteda)
+
+afrique_corp <- corpus(corpus_abs_tr_en_sep,
+                       docid_field = "StoreId",
+                       text_field = "Abs_tr_en_unaccent")
+
+afrique_toks <- tokens(afrique_corp)
+
+afrique_kwic <- kwic(afrique_toks, 
+     pattern = "\\bAfrica\\b",
+     valuetype = "regex",
+     case_insensitive = FALSE)
+
+setDT(afrique_kwic)
+
+afrique_kwic_unique <- unique(afrique_kwic, by="docname")
+africa_kwic_echantillon <- afrique_kwic_unique[1:50, .(pre, keyword, post)]
+
+africa_kwic_echantillon_gt <- gt(africa_kwic_echantillon)|>tab_header(
+  title = "Échantillon des collocations du mot «Africa» dans les résumés")|>
+  cols_label(pre = "COLLOCATIONS ANTÉRIEURES",
+             keyword = "",
+             post = "COLLOCATIONS POSTÉRIEURES")|>
+  tab_source_note(
+    source_note = md("Données: ProQuest, 2022")
+  )
+africa_kwic_echantillon_gt|>gtsave(filename = "resultats/20221106_PB_collocations_africa_echantillon.png")
+
 
 
 ################ Mapping des villes dans les titres
@@ -469,8 +560,24 @@ ggplot() +
 
 ggsave("resultats/20221106_PB_Distrib_geo_villes.png", dpi = 300)
 
+titres_villes_exemple <- data.table(ville = c("Montréal",
+                                              "Bruxelles",
+                                              "Dakar"),
+  titres= c(corpus_abs_tr_en_sep[Title %like% "Montreal", .(Title)][1],
+            corpus_abs_tr_en_sep[Title %like% "Brussels", .(Title)][1],
+            corpus_abs_tr_en_sep[Title %like% "Dakar", .(Title)][1]
+))
 
-corpus_abs_tr_en_sep[Title %ilike% "\\bbenin\\b", .(Title)]
+
+# Trois titres de documents choisis au hasard
+titres_villes_exemple_gt <- gt(titres_villes_exemple)|>tab_header(
+  title = "Trois exemples de titres avec noms de villes")|>
+  cols_label(ville = "Ville",
+             titres = "Titre")|>
+  tab_source_note(
+    source_note = md("Données: ProQuest, 2022")
+  )
+titres_villes_exemple_gt|>gtsave(filename = "resultats/20221105_PB_titres_villes_exemple_gt.png")
 
 
 
@@ -480,10 +587,10 @@ ggplot(corpus_abs_tr_en_sep[, .(StoreId, year)][,.N, by="year"], aes(x=year, y=N
   geom_text(aes(label = N),
             hjust = 0.6,
             vjust = -1,
-            size = 1.7,
+            size = 1.8,
             colour = "black")+
   theme_classic()+
-  labs(title = "Distribution chronologique des notices du corpus",
+  labs(title = "Distribution annuelle des notices du corpus",
        subtitle = "Mot de la requête: «francophon*»",
        caption = "Données: ProQuest, 2022")+
   ylab("Nombre de notices")+
@@ -491,21 +598,20 @@ ggplot(corpus_abs_tr_en_sep[, .(StoreId, year)][,.N, by="year"], aes(x=year, y=N
 
 ggsave("resultats/20221105_PB_DistribChronologique_corpus_trad_en.png", dpi=300)
 
-
+str(corpus_abs_tr_en_sep)
+corpus_abs_tr_en_sep[, StoreId:=(StoreId/1)]
 
 setnames(corpus_abs_tr_en_sep, old = c("StoreId", "Abstract"), new = c("doc_id", "text"))
 
-# Catégorisation de variables
-corpus$languageOfSummaryTextCat <- as.factor(corpus$languageOfSummaryTextCat)
-corpus$documentType <- as.factor(corpus$documentType)
-
 ############### Note: pour contrôler les paramètres de prétraitement, exécuter ceux-ci préalablement à la fonction textPreprocessor de stm
 corpus_abs_tr_en_sep[Abs_tr_en_unaccent =="", .N]
-corpus_abs_tr_en_sep[, text:=ifelse(Abs_tr_en_unaccent!="", Abs_tr_en_unaccent, Ti_tr_en_unaccent)]
+# corpus_abs_tr_en_sep[, text:=ifelse(Abs_tr_en_unaccent!="", Abs_tr_en_unaccent, Ti_tr_en_unaccent)]
 
-
+corpus_abs_tr_en_sep_reduit <- corpus_abs_tr_en_sep[Abs_tr_en_unaccent !=""]
+corpus_abs_tr_en_sep_reduit <- 
+str(corpus_abs_tr_en_sep_reduit)
 # * default parameters
-processed_en <- textProcessor(corpus_abs_tr_en_sep$text, metadata = as.data.frame(corpus_abs_tr_en_sep[, .(StoreId, ArticleType, documentType, year, identifierKeywords, subjects,`villes 1`, `villes 2`,`villes 3`,`pays 1`,`pays 2`,`pays 3`,`continents 1`,`continents 2`,`continents 3`)]),
+processed_en <- textProcessor(corpus_abs_tr_en_sep_reduit$Abs_tr_en_unaccent, metadata = as.data.frame(corpus_abs_tr_en_sep_reduit[, .(StoreId, Abs_tr_en_unaccent, ArticleType, documentType, year, identifierKeywords, subjects,`villes 1`, `villes 2`,`villes 3`,`pays 1`,`pays 2`,`pays 3`,`continents 1`,`continents 2`,`continents 3`)]),
                            lowercase = TRUE, #*
                            removestopwords = TRUE, #*
                            removenumbers = TRUE, #*
@@ -535,7 +641,7 @@ meta <-out$meta
 set.seed(831)
 system.time({
   First_STM <- stm(docs, vocab, 40,
-                   prevalence =~ s(year),
+                   # prevalence =~ s(year),
                    data = meta,
                    seed = 15, max.em.its = 5
   )
@@ -563,7 +669,7 @@ plot(Second_STM)
 # Trouver le nombre idéal de topiques (K) 
 set.seed(833)
 system.time({
-  findingk <- searchK(out$documents, out$vocab, K = c(20:40),
+  findingk <- searchK(out$documents, out$vocab, K = c(30:50),
                       prevalence =~ s(year), data = meta, verbose=TRUE
   )
 })
