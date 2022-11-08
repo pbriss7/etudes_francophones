@@ -603,13 +603,19 @@ corpus_abs_tr_en_sep[, StoreId:=(StoreId/1)]
 
 setnames(corpus_abs_tr_en_sep, old = c("StoreId", "Abstract"), new = c("doc_id", "text"))
 
+
+
+
+
+
+
+
 ############### Note: pour contrôler les paramètres de prétraitement, exécuter ceux-ci préalablement à la fonction textPreprocessor de stm
-corpus_abs_tr_en_sep[Abs_tr_en_unaccent =="", .N]
+
 # corpus_abs_tr_en_sep[, text:=ifelse(Abs_tr_en_unaccent!="", Abs_tr_en_unaccent, Ti_tr_en_unaccent)]
 
 corpus_abs_tr_en_sep_reduit <- corpus_abs_tr_en_sep[Abs_tr_en_unaccent !=""]
-corpus_abs_tr_en_sep_reduit <- 
-str(corpus_abs_tr_en_sep_reduit)
+
 # * default parameters
 processed_en <- textProcessor(corpus_abs_tr_en_sep_reduit$Abs_tr_en_unaccent, metadata = as.data.frame(corpus_abs_tr_en_sep_reduit[, .(StoreId, Abs_tr_en_unaccent, ArticleType, documentType, year, identifierKeywords, subjects,`villes 1`, `villes 2`,`villes 3`,`pays 1`,`pays 2`,`pays 3`,`continents 1`,`continents 2`,`continents 3`)]),
                            lowercase = TRUE, #*
@@ -623,8 +629,14 @@ processed_en <- textProcessor(corpus_abs_tr_en_sep_reduit$Abs_tr_en_unaccent, me
                            verbose = TRUE, #*
                            onlycharacter = TRUE, # not def
                            striphtml = FALSE, #*
-                           customstopwords = c("director", "directed", "editor", "edited",
-                                               "abstract","one", "will", "les", "des"), #*
+                           customstopwords = c("article", "articles", "research", "researches",
+                                               "issue","issues", "work", "works", "field",
+                                               "fields", "analysis", "will", "approach",
+                                               "present", "presents", "presentation", "discuss", "discussion",
+                                               "discussed", "discussions", "discussing",
+                                               "focus", "presents", "reflect","reflects", "context",
+                                               "propos", "develop", "develops", "highlight","highlights",
+                                               "concept", "part","address", "addresses"), #*
                            v1 = FALSE) #*
 
 
@@ -669,20 +681,22 @@ plot(Second_STM)
 # Trouver le nombre idéal de topiques (K) 
 set.seed(833)
 system.time({
-  findingk <- searchK(out$documents, out$vocab, K = c(30:50),
+  findingk <- searchK(out$documents, out$vocab, K = c(35:47),
                       prevalence =~ s(year), data = meta, verbose=TRUE
   )
 })
 
 # Plot
 plot(findingk)
+findingk$results[which.max(findingk$result$heldout),]
+findingk$results[which.min(findingk$result$residual),]
 
 # Find k: Approach 2
 set.seed(834)
 system.time({
   findingk_ver2 <- searchK(documents = out$documents, 
                            vocab = out$vocab,
-                           K = c(10,20,30,40,50,60,70), #specify K to try
+                           K = c(30,40,50,60,70,80), #specify K to try
                            N = 500, # matches 10% default
                            proportion = 0.5, # default
                            heldout.seed = 1234, # optional
@@ -722,16 +736,19 @@ plot(findingk_ver3.lee_mimno)
 set.seed(836)
 system.time({
   Third_STM <- stm(documents = out$documents, vocab = out$vocab,
-                   K = 39, prevalence =~ s(year),
-                   max.em.its = 75, data = out$meta,
-                   init.type = "Spectral", verbose = FALSE
+                   K = 36, 
+                   prevalence =~ s(year),
+                   max.em.its = 75, 
+                   data = out$meta,
+                   init.type = "Spectral",
+                   verbose = TRUE
   )
 })
 
 #Plot
-png("resultats/test.png")
+png("resultats/20221107_PB_Proportions_36themes_mots_cles.png")
 plot(Third_STM,
-     main = "39 thèmes des études francophones\nNombre de documents avec contenu textuel analysés: 2988",
+     main = "37 thèmes des études francophones\nNombre de documents analysés: 2988",
      sub = "\nDonnées: ProQuest, 2022",
      xlab = "Proportions des thèmes"
      )
@@ -742,7 +759,7 @@ str(Third_STM)
 label_topics_matrix <- labelTopics(Third_STM)[[1]]
 
 noms_themes_dt <- data.table(theme_no = 1:nrow(label_topics_matrix),
-                          theme_nom = paste(label_topics_matrix[, 1], label_topics_matrix[, 2], label_topics_matrix[, 3], sep = "_"))
+                          theme_nom = paste(label_topics_matrix[, 1], label_topics_matrix[, 2], label_topics_matrix[, 3], sep = "; "))
 
 noms_themes <- gt(noms_themes_dt)|>tab_header(
   title = "Numéro des thèmes et principaux mots associés")|>
@@ -751,7 +768,7 @@ noms_themes <- gt(noms_themes_dt)|>tab_header(
   tab_source_note(
     source_note = md("Données: ProQuest, 2022")
   )
-noms_themes|>gtsave(filename = "resultats/20221105_PB_table_themes_mots.png")
+noms_themes|>gtsave(filename = "resultats/20221107_PB_table_themes_mots.png")
 
 # Top Words
 
@@ -761,56 +778,47 @@ labelTopics(Third_STM)
 # We can find the top documents associated with a topic with the findThoughts function:
 # top 2 paragraps for Topic 1 to 10
 
-findThoughts(Third_STM, texts = meta$year,n = 1, topics = 1:39)
-
-
-# We can look at multiple, or all, topics this way as well. 
-# For this we’ll just look at the shorttext.
-# top 3 paragraps for Topic #1 to 15
-
-findThoughts(Third_STM, texts = meta$subjects, n = 1, topics = 15)
-
-
+findThoughts(Third_STM, texts = meta$year,n = 1, topics = 1:37)
 
 
 
 # # Graphical display of topic correlations
 # 
-# topic_correlation <- topicCorr(Third_STM)
-# str(topic_correlation)
-# attributes(topic_correlation)
-# str(topic_correlation$poscor)
-# 
-# plot.topicCorr <- function(x, topics=NULL,
-#                            vlabels=NULL, layout=NULL,
-#                            vertex.color="white", vertex.label.cex=.65, 
-#                            vertex.label.color="black",vertex.size=NULL, ...){
-#   if(!requireNamespace("igraph", quietly=TRUE)) stop("Install the igraph package to use this function.")
-#   if(is.null(topics)) topics <- 1:nrow(x$posadj)
-#   x <- x$posadj[topics, topics]
-#   
-#   g <- igraph::graph.adjacency(x, mode="undirected", weighted=TRUE, diag=FALSE)
-#   if(is.null(vlabels)) vlabels <-  paste("Topic", topics)
-#   igraph::E(g)$size <- 1
-#   igraph::E(g)$lty <- 2
-#   igraph::E(g)$color <- "black"
-#   igraph::V(g)$label <- vlabels
-#   if(is.null(layout)) layout <- igraph::layout.fruchterman.reingold
-#   igraph::plot.igraph(g, layout=layout, vertex.color=vertex.color, vertex.label.cex=vertex.label.cex, 
-#                       vertex.label.color=vertex.label.color, vertex.size=vertex.size, ...)
-# }
-# 
-# plot.topicCorr(topic_correlation,
-#                vlabels = noms_themes_dt$theme_nom)
-# 
+topic_correlation <- topicCorr(Third_STM)
+str(topic_correlation)
+attributes(topic_correlation)
+str(topic_correlation$poscor)
 
+plot.topicCorr <- function(x, topics=NULL,
+                           vlabels=NULL, layout=NULL,
+                           vertex.color="white", vertex.label.cex=.65,
+                           vertex.label.color="black",vertex.size=NULL, ...){
+  if(!requireNamespace("igraph", quietly=TRUE)) stop("Install the igraph package to use this function.")
+  if(is.null(topics)) topics <- 1:nrow(x$posadj)
+  x <- x$posadj[topics, topics]
+
+  g <- igraph::graph.adjacency(x, mode="undirected", weighted=TRUE, diag=FALSE)
+  if(is.null(vlabels)) vlabels <-  paste("Topic", topics)
+  igraph::E(g)$size <- 1
+  igraph::E(g)$lty <- 2
+  igraph::E(g)$color <- "green"
+  igraph::V(g)$label <- vlabels
+  if(is.null(layout)) layout <- igraph::layout.fruchterman.reingold
+  igraph::plot.igraph(g, layout=layout, vertex.color=vertex.color, vertex.label.cex=vertex.label.cex,
+                      vertex.label.color=vertex.label.color, vertex.size=vertex.size, ...)
+}
+
+plot.topicCorr(topic_correlation,
+               vlabels = noms_themes_dt$theme_nom)
+
+saveRDS()
 
 
 # Wordcloud:topic 17 with word distribution
 labelTopics(Third_STM)
 set.seed(837)
 library(wordcloud)
-stm::cloud(Third_STM, topic=26, scale=c(5,0.5))
+stm::cloud(Third_STM, topic=2, scale=c(4,0.5))
 
 
 
@@ -840,8 +848,8 @@ predict_topics <- estimateEffect(formula = 1:10 ~ `year`,
 
 # # Topic proportions
 # # 
-# plot(Third_STM, type = "hist", topics = sample(1:20, size = 5))
-# plot(Third_STM, type="hist")
+plot(Third_STM, type = "hist", topics = sample(1:36, size = 5))
+plot(Third_STM, type="hist")
 
 
 # The topicQuality() function plots these values 
@@ -851,7 +859,15 @@ topicQuality(model=Third_STM, documents=docs)
 
 
 ############ Visualisation dynamique des thèmes et des mots-clés de chacun #######################
-vis_topics <- toLDAvis(Third_STM, docs = out$documents)
+vis_topics <- toLDAvis(Third_STM, 
+                       docs = out$documents,
+                       reorder.topics = FALSE)
+devtools::install_github("cpsievert/LDAvis")
+library(LDAvis)
+
+
+
+stm::cloud(Third_STM, topic=10, scale=c(4,0.3))
 
 
 ########################## Évolution de thèmes
