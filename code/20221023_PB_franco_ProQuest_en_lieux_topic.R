@@ -756,7 +756,7 @@ dev.off()
 
 
 str(Third_STM)
-label_topics_matrix <- labelTopics(Third_STM)[[1]]
+label_topics_matrix <- labelTopics(Third_STM, n=25)[[1]]
 
 noms_themes_dt <- data.table(theme_no = 1:nrow(label_topics_matrix),
                           theme_nom = paste(label_topics_matrix[, 1], label_topics_matrix[, 2], label_topics_matrix[, 3], sep = "; "))
@@ -818,7 +818,7 @@ saveRDS()
 labelTopics(Third_STM)
 set.seed(837)
 library(wordcloud)
-stm::cloud(Third_STM, topic=2, scale=c(4,0.5))
+stm::cloud(Third_STM, topic=18, scale=c(4,0.5))
 
 
 
