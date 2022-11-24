@@ -1,0 +1,13 @@
+name: francophonie_app
+title: francophonie_app
+username:
+account: pbrissette
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7688927
+bundleId: 6540025
+url: https://pbrissette.shinyapps.io/francophonie_app/
+when: 1669058221.22154
+lastSyncTime: 1669058221.22155
+asMultiple: FALSE
+asStatic: FALSE

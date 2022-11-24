@@ -1,8 +1,7 @@
 # Importation des données issues de la recherche sur la francophonie dans la littérature savante (ProQuest)
-
+install.packages("xlsx")
 setwd("~/github/PERSONNEL/Francophonie_ProQuest")
 library(data.table)
-library(xlsx)
 library(dplyr)
 library(stringr)
 library(ggplot2)
@@ -27,26 +26,26 @@ library(gt)
 
 # # Importation des fichiers xml
 # list.files()
-# liste_fichiers <- list.files("donnees/20221026corpus_leger/", pattern = ".xls")
-# liste_fichiers_long <- paste0("donnees/20221026corpus_leger/", liste_fichiers)
-# 
-# # Lecture des fichiers xml
-# liste_read <- lapply(liste_fichiers_long, read.xlsx, 1)
-# 
-# # assemblage de la liste en df
-# corpus <- do.call(bind_rows, liste_read)
-# setDT(corpus)
-# corpus <- corpus[!Title %in% c("Éditorial", "Comments", "Conclusions", 	
-# "Francophony[ies]", "Multiple Francophones", "Opening Address", "Advertisement 11 -- No Title")]
-# 
-# # Réduction de la structure
-# corpus <- corpus[!documentType %in% c("review", "Book Review") & !Authors == "[Unknown]" & !duplicated(Title)]
-# corpus <- corpus[, c("Title", "Abstract", "StoreId", "ArticleType",
-#                          "documentType", "isbn", "language", "languageOfSummary",
-#                          "year", "pubdate", "classificationCodes","identifierKeywords",
-#                          "majorClassificationCodes", "subjectClassifications",
-#                          "subjectTerms", "subjects")]
-# 
+liste_fichiers <- list.files("donnees/plein_texte/FR/", pattern = ".xls")
+liste_fichiers_long <- paste0("donnees/plein_texte/FR/", liste_fichiers)
+
+# Lecture des fichiers xml
+liste_read <- lapply(liste_fichiers_long, read.xlsx, 1)
+
+# assemblage de la liste en df
+corpus <- do.call(bind_rows, liste_read)
+setDT(corpus)
+corpus <- corpus[!Title %in% c("Éditorial", "Comments", "Conclusions",
+"Francophony[ies]", "Multiple Francophones", "Opening Address", "Advertisement 11 -- No Title")]
+
+# Réduction de la structure
+corpus <- corpus[!documentType %in% c("review", "Book Review") & !Authors == "[Unknown]" & !duplicated(Title)]
+corpus <- corpus[, c("Authors", "Title", "Abstract", "StoreId", "ArticleType",
+                         "documentType", "isbn", "language", "languageOfSummary",
+                         "year", "pubdate", "classificationCodes","identifierKeywords",
+                         "majorClassificationCodes", "subjectClassifications",
+                         "subjectTerms", "subjects")]
+
 # # Correction des types de données
 # corpus[, year:=as.integer(year)]
 # 
@@ -170,6 +169,13 @@ world_poly[, nom_pays:=nom_pays %>% str_replace_all(
 country_regex <- paste0(world_poly$nom_pays, collapse = "\\b|\\b")
 country_regex_less_Algeria <- paste0(world_poly$nom_pays[-83], collapse = "\\b|\\b")
 
+# Un exemple de texte où France cooccurre avec un autre nom de pays
+corpus[Abstract %ilike% "\\bfrance\\b" & Abstract %ilike% "\\bcanada\\b", .(Authors, Title, year, documentType, isbn, Abstract)][6]
+
+# Un deuxième exemple où on signale la France pour mieux dire qu'on étudie un phénomène hors de France
+corpus[Abstract %ilike% "recherche francophone en France, Afrique", .(Authors, Title, year, documentType, isbn, Abstract)][1]
+
+
 # Création d'une regex pour continents
 continents_names <-
   c(
@@ -292,6 +298,20 @@ continent_melt <- melt(
 continent_melt <-
   continent_melt[!nom_continent == "" & !is.na(nom_continent)]
 
+saveRDS(continent_melt, "donnees/20221111_PB_continents_melt.RDS")
+
+continent_melt[, .N, "nom_continent"][order(N, decreasing = TRUE)]
+
+freq_continent_gt <- gt(continent_melt[, .N, "nom_continent"][order(N, decreasing = TRUE)])|>tab_header(
+  title = "Fréquences des noms de continents dans les résumés")|>
+  cols_label(nom_continent = "Continents")|>
+  tab_source_note(
+    source_note = md("Données: ProQuest, 2022")
+  )
+freq_continent_gt|>gtsave(filename = "resultats/20221111_PB_freq_continents_gt.png")
+
+
+
 ggplot(continent_melt[, .N, "nom_continent"][order(N, decreasing = T)][1:25][!nom_continent ==
                                                                                "NA"], aes(x = reorder(nom_continent, N), y = N)) +
   geom_bar(stat = "identity") +
@@ -309,6 +329,7 @@ ggplot(continent_melt[, .N, "nom_continent"][order(N, decreasing = T)][1:25][!no
 
 ggsave("resultats/20221105_PB_Distrib_continents_resumes_barplot.png", dpi = 300)
 
+continent_melt
 
 # Liste de toutes les villes accompagnées des identifiants
 # modifier la stratégie et utiliser les TITRES ici. Les noms de villes sont souvent extraites de notices bibliographiques. Faux positifs
@@ -517,7 +538,7 @@ afrique_kwic <- kwic(afrique_toks,
 setDT(afrique_kwic)
 
 afrique_kwic_unique <- unique(afrique_kwic, by="docname")
-africa_kwic_echantillon <- afrique_kwic_unique[1:50, .(pre, keyword, post)]
+africa_kwic_echantillon <- afrique_kwic_unique[1:25, .(pre, keyword, post)]
 
 africa_kwic_echantillon_gt <- gt(africa_kwic_echantillon)|>tab_header(
   title = "Échantillon des collocations du mot «Africa» dans les résumés")|>
@@ -616,6 +637,9 @@ setnames(corpus_abs_tr_en_sep, old = c("StoreId", "Abstract"), new = c("doc_id",
 
 corpus_abs_tr_en_sep_reduit <- corpus_abs_tr_en_sep[Abs_tr_en_unaccent !=""]
 
+saveRDS(corpus_abs_tr_en_sep_reduit, "donnees/20221120_PB_donnees_pour_topicmodels.RDS")
+
+
 # * default parameters
 processed_en <- textProcessor(corpus_abs_tr_en_sep_reduit$Abs_tr_en_unaccent, metadata = as.data.frame(corpus_abs_tr_en_sep_reduit[, .(StoreId, Abs_tr_en_unaccent, ArticleType, documentType, year, identifierKeywords, subjects,`villes 1`, `villes 2`,`villes 3`,`pays 1`,`pays 2`,`pays 3`,`continents 1`,`continents 2`,`continents 3`)]),
                            lowercase = TRUE, #*
@@ -639,6 +663,7 @@ processed_en <- textProcessor(corpus_abs_tr_en_sep_reduit$Abs_tr_en_unaccent, me
                                                "concept", "part","address", "addresses"), #*
                            v1 = FALSE) #*
 
+saveRDS(processed_en, "donnees/20221120_PB_processed_en.RDS")
 
 # filter out terms that don’t appear in more than 10 documents,
 out <- prepDocuments(processed_en$documents, processed_en$vocab, processed_en$meta, lower.thresh=10)
@@ -649,29 +674,35 @@ docs <- out$documents
 vocab <- out$vocab
 meta <-out$meta
 
+str(out)
+
 # Construire un premier modèle
 set.seed(831)
 system.time({
   First_STM <- stm(docs, vocab, 40,
                    # prevalence =~ s(year),
                    data = meta,
-                   seed = 15, max.em.its = 5
+                   seed = 15, 
+                   max.em.its = 5
   )
 })
 
 # Observation du premier modèle
 plot(First_STM)
 
-
-
+str(Third_STM)
+Third_STM$
+TwentyNewsgroups$
 # Deuxième modèle
 set.seed(832)
 system.time({
   Second_STM <- stm(documents = out$documents, vocab = out$vocab,
                     K = 18, 
                     prevalence =~ s(year),
-                    max.em.its = 75, data = out$meta,
-                    init.type = "Spectral", verbose = TRUE
+                    max.em.its = 75, 
+                    data = out$meta,
+                    init.type = "Spectral", 
+                    verbose = TRUE
   )
 })
 
@@ -732,7 +763,7 @@ system.time({
 # Plot
 plot(findingk_ver3.lee_mimno)
 
-# Run final topic model at 20 topics and see how long it takes
+# Run final topic model at 36 topics and see how long it takes
 set.seed(836)
 system.time({
   Third_STM <- stm(documents = out$documents, vocab = out$vocab,
@@ -745,10 +776,12 @@ system.time({
   )
 })
 
+saveRDS(Third_STM, "donnees/20221120_PB_Third_STM.RDS")
+
 #Plot
 png("resultats/20221107_PB_Proportions_36themes_mots_cles.png")
 plot(Third_STM,
-     main = "37 thèmes des études francophones\nNombre de documents analysés: 2988",
+     main = "36 thèmes des études francophones\nNombre de documents analysés: 2988",
      sub = "\nDonnées: ProQuest, 2022",
      xlab = "Proportions des thèmes"
      )
@@ -782,43 +815,42 @@ findThoughts(Third_STM, texts = meta$year,n = 1, topics = 1:37)
 
 
 
-# # Graphical display of topic correlations
+# # # Graphical display of topic correlations
+# # 
+# topic_correlation <- topicCorr(Third_STM)
+# str(topic_correlation)
+# attributes(topic_correlation)
+# str(topic_correlation$poscor)
 # 
-topic_correlation <- topicCorr(Third_STM)
-str(topic_correlation)
-attributes(topic_correlation)
-str(topic_correlation$poscor)
+# plot.topicCorr <- function(x, topics=NULL,
+#                            vlabels=NULL, layout=NULL,
+#                            vertex.color="white", vertex.label.cex=.65,
+#                            vertex.label.color="black",vertex.size=NULL, ...){
+#   if(!requireNamespace("igraph", quietly=TRUE)) stop("Install the igraph package to use this function.")
+#   if(is.null(topics)) topics <- 1:nrow(x$posadj)
+#   x <- x$posadj[topics, topics]
+# 
+#   g <- igraph::graph.adjacency(x, mode="undirected", weighted=TRUE, diag=FALSE)
+#   if(is.null(vlabels)) vlabels <-  paste("Topic", topics)
+#   igraph::E(g)$size <- 1
+#   igraph::E(g)$lty <- 2
+#   igraph::E(g)$color <- "green"
+#   igraph::V(g)$label <- vlabels
+#   if(is.null(layout)) layout <- igraph::layout.fruchterman.reingold
+#   igraph::plot.igraph(g, layout=layout, vertex.color=vertex.color, vertex.label.cex=vertex.label.cex,
+#                       vertex.label.color=vertex.label.color, vertex.size=vertex.size, ...)
+# }
+# 
+# plot.topicCorr(topic_correlation,
+#                vlabels = noms_themes_dt$theme_nom)
 
-plot.topicCorr <- function(x, topics=NULL,
-                           vlabels=NULL, layout=NULL,
-                           vertex.color="white", vertex.label.cex=.65,
-                           vertex.label.color="black",vertex.size=NULL, ...){
-  if(!requireNamespace("igraph", quietly=TRUE)) stop("Install the igraph package to use this function.")
-  if(is.null(topics)) topics <- 1:nrow(x$posadj)
-  x <- x$posadj[topics, topics]
-
-  g <- igraph::graph.adjacency(x, mode="undirected", weighted=TRUE, diag=FALSE)
-  if(is.null(vlabels)) vlabels <-  paste("Topic", topics)
-  igraph::E(g)$size <- 1
-  igraph::E(g)$lty <- 2
-  igraph::E(g)$color <- "green"
-  igraph::V(g)$label <- vlabels
-  if(is.null(layout)) layout <- igraph::layout.fruchterman.reingold
-  igraph::plot.igraph(g, layout=layout, vertex.color=vertex.color, vertex.label.cex=vertex.label.cex,
-                      vertex.label.color=vertex.label.color, vertex.size=vertex.size, ...)
-}
-
-plot.topicCorr(topic_correlation,
-               vlabels = noms_themes_dt$theme_nom)
-
-saveRDS()
 
 
 # Wordcloud:topic 17 with word distribution
 labelTopics(Third_STM)
 set.seed(837)
 library(wordcloud)
-stm::cloud(Third_STM, topic=18, scale=c(4,0.5))
+stm::cloud(Third_STM, topic=1, scale=c(4,0.5))
 
 
 
@@ -833,91 +865,20 @@ predict_topics <- estimateEffect(formula = 1:10 ~ `year`,
                                prior = 1e-5)
 
 
-# # Effect of Zacks vs . Seeking Alpha publishers
-# 
-# set.seed(837)
-# plot(predict_topics, covariate = "documentType", topics = c(1,4,10),
-#      model = Third_STM, method = "difference",
-#      cov.value1 = "Dissertation/Thesis", cov.value2 = "Book",
-#      xlab = "Dissertation/Thesis ... Book",
-#      main = "Dissertation/Thesis VS Book",
-#      xlim = c(-.1, .1), labeltype = "custom",
-#      custom.labels = c('Topic 1','Topic 4','Topic 10'))
-# 
-
-
-# # Topic proportions
-# # 
-plot(Third_STM, type = "hist", topics = sample(1:36, size = 5))
-plot(Third_STM, type="hist")
-
-
-# The topicQuality() function plots these values 
-# and labels each with its topic number:
-
-topicQuality(model=Third_STM, documents=docs)
-
 
 ############ Visualisation dynamique des thèmes et des mots-clés de chacun #######################
-vis_topics <- toLDAvis(Third_STM, 
-                       docs = out$documents,
-                       reorder.topics = FALSE)
-devtools::install_github("cpsievert/LDAvis")
-library(LDAvis)
+str(toLDAvis(Third_STM,
+         docs = out$documents,
+         reorder.topics = FALSE))
+# devtools::install_github("cpsievert/LDAvis")
+# library(LDAvis)
 
-
+str(out$documents)
 
 stm::cloud(Third_STM, topic=10, scale=c(4,0.3))
 
 
 ########################## Évolution de thèmes
-dictionnaire_quebecois <- c("qu[ée]b[ée]c|canadi[ae]n|canada?|montr[ée]al?")
-
-# Création d'une colonne texte net
-nettoyage_fun<- function(x){
-  x <- tolower(x)
-  x <- tm::removeNumbers(x)
-  x <- tm::removePunctuation(x)
-  x <- tm::removeWords(x, lsa::stopwords_en)
-  x <- tm::stemDocument(x)
-  return(x)
-}
-
-corpus_abs_tr_en[, text_net:=nettoyage_fun(text)]
-
-# Création d'un sous-corpus
-corp_quebecois <- corpus_abs_tr_en[text_net %like% dictionnaire_quebecois, .(doc_id, year)]
-
-# Distribution annuelle du corpus total
-distrib_annuelle_corpus <- corpus_abs_tr_en[, .N, "year"]
-
-# Distribution annuelle de la sélection + ajout pour relatif
-distribution_annuelle_selection <- corp_quebecois[, .N, "year"]
-
-distribution_annuelle_selection <- merge(distribution_annuelle_selection, distrib_annuelle_corpus, by="year", all.x = TRUE)
-setnames(distribution_annuelle_selection, new = c("annee", "selection", "integral"))
-
-distribution_annuelle_selection <- distribution_annuelle_selection[-c(1,2,50)]
-
-distribution_annuelle_selection_melt <- melt(distribution_annuelle_selection,
-     id.vars = "annee",
-     variable.name = "corpus",
-     value.name = "total")
-
-
-ggplot(distribution_annuelle_selection_melt, aes(x=annee, y=total, color=corpus))+
-  geom_point(stat="identity")+
-  geom_smooth()+
-  labs(title = "Distribution chronologique des documents traitant du Québec",
-       subtitle = "Topique 14")
-
-
-ggplot(distribution_annuelle_selection_melt, aes(x=annee, y=total, fill=corpus))+
-  geom_bar(stat="identity", position="dodge")+
-  geom_smooth()+
-  labs(title = "Distribution chronologique des documents traitant du Québec",
-       subtitle = "Topique 14")
-
 
 
 
