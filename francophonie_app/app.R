@@ -64,8 +64,7 @@ ui <- navbarPage(
            # ,
            # includeMarkdown("Graphiques.Rmd")
            ),
-  tabPanel("Documentation"
-           ,
+  tabPanel("Documentation",
            includeMarkdown("Readme.Rmd")
            )
 )

@@ -1,5 +1,5 @@
 # Importation des données issues de la recherche sur la francophonie dans la littérature savante (ProQuest)
-install.packages("xlsx")
+
 setwd("~/github/PERSONNEL/Francophonie_ProQuest")
 library(data.table)
 library(dplyr)
@@ -23,6 +23,7 @@ library(tidygeocoder)
 library(maps)
 library(viridis)
 library(gt)
+library(xlsx)
 
 # # Importation des fichiers xml
 # list.files()
