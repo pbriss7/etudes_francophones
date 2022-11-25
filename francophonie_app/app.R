@@ -1,17 +1,14 @@
 # Application Shiny proposant un modèle de topics à partir d'un corpus constitué de 2545 publications savantes sur la francophonie
 
-if(!"shiny" %in% rownames(installed.packages())){install.packages("shiny")}
-if(!"servr" %in% rownames(installed.packages())){install.packages("servr")}
 # install.packages("xfun", type="binary")
 library(servr)
 library(shiny)
 library(LDAvis)
-library(wordcloud)
 library(data.table)
 library(topicmodels)
 library(text2vec)
-library(stringr)
-library(rmarkdown)
+library(markdown)
+
 
 # - Importation des données ----
 # Note: les chemins doivent renvoyer à ceux contenus à l'intérieur de l'application.
@@ -60,10 +57,9 @@ ui <- navbarPage(
                tabPanel("", hr(),helpText(h2("Choisissez un topic")),  visOutput('visChart')))
            )
   ),
-  tabPanel("Graphiques"
-           # ,
-           # includeMarkdown("Graphiques.Rmd")
-           ),
+  # tabPanel("Graphiques",
+  #          includeMarkdown("Graphiques.Rmd")
+  #          ),
   tabPanel("Documentation",
            includeMarkdown("Readme.Rmd")
            )

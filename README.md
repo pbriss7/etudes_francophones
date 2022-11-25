@@ -1,1 +1,36 @@
-# francophonie_savante
+## Études francophones
+
+### Contexte
+
+Ce tableau de bord utilise les données produites par [ProQuest](https://www.proquest.com/). Il vise à accompagner la présentation "Une cartographie des études francophones" faite le 26 novembre 2022 à l'Université de Chonnam, Gwangju, Corée.
+
+### Données utilisées
+Les données ont été rassemblées à travers ProQuest le 26 octobre 2022. Elles forment un corpus de 2992 documents, composé au moyen d'une requête lancée dans les champs d'indexation "Sujet" de 174 bases de données. Le motif de la requête est "francophon\*". Le résultat a été limité aux publications savantes (mémoires et thèses, livres, articles de fond, textes de conférences). Les distributions chronologique et géographique du corpus ont été faites à partir des 2992 notices qui le composent. Le modèle des topics a été fait à partir des 2545 résumés disponibles (85% du corpus), après traduction vers l'anglais de 607 d'entre eux. La traduction a été faite avec l'API de [Deepl]("https://www.deepl.com/docs-api").
+
+### Prétraitement
+Les mots présents dans plus de 20% du corpus ont été éliminés, de même que les mots dont la fréquence était inférieure à 10 occurrences dans l'ensemble du corpus. Les antidictionnaires anglais et français de l'extension lsa de R ont été utilisés pour supprimer des mots fonctionnels. On a également éliminé d'autres mots fréquents, typiques de ce corpus spécifique: "article", "articles", "research", "researches","issue","issues", "work", "works", "field","fields", "analysis", "will", "approach", "present", "presents", "presentation", "discuss", "discussion", "discussed", "discussions", "discussing", "focus", "presents", "reflect","reflects", "context", "propos", "develop", "develops", "highlight","highlights", "concept", "part","address", "addresses".
+
+### Annotation du corpus
+Les noms de villes, de pays et de continents ont été géoréférencés avec l'API de [Nominatim]("https://nominatim.org/"), à l'aide de l'extension tidygeocoder. 
+
+### Statistiques, graphiques et application
+Les calculs statistiques, les graphiques et l'application ont été réalisés dans l'environnement de développement intégré RStudio- [Posit]("https://posit.co/"). L'application est écrite en langage R et son code peut être consulté dans [Github]("https://github.com/pbriss7/etudes_francophones"). 
+
+### Extensions R utilisées
+- [servr]("https://cran.r-project.org/web/packages/servr/index.html")
+- [shiny]("https://cran.r-project.org/web/packages/shiny/index.html")
+- [LDAvis]("https://cran.r-project.org/web/packages/LDAvis/index.html")
+- [deeplr]("https://cran.r-project.org/web/packages/deeplr/index.html")
+- [wordcloud2]("https://cran.r-project.org/web/packages/wordcloud2/index.html")
+- [data.table]("https://cran.r-project.org/web/packages/data.table/index.html")
+- [lsa]("https://cran.r-project.org/web/packages/lsa/index.html")
+- [tidygeocoder]("https://cran.r-project.org/web/packages/tidygeocoder/index.html")
+- [topicmodels]("https://cran.r-project.org/web/packages/topicmodels/index.html")
+- [text2vec]("https://cran.r-project.org/web/packages/text2vec/index.html")
+- [stringr]("https://cran.r-project.org/web/packages/stringr/index.html")
+- [rmarkdown]("https://cran.r-project.org/web/packages/rmarkdown/index.html")
+
+Pour toute question:
+pascal.brissette@mcgill.ca
+
+Ont contribué au moissonnage des données et à la traduction des résumés: Yu Shen Shi (U. McGill) et Amélie Ducharme (U. McGill)

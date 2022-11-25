@@ -1,75 +1,111 @@
-# Importation des données issues de la recherche sur la francophonie dans la littérature savante (ProQuest)
+# Traitement des données issues de la requête "francophon*" dans ProQuest (174 bases de données)
+
 
 setwd("~/github/PERSONNEL/Francophonie_ProQuest")
 library(data.table)
 library(dplyr)
 library(stringr)
 library(ggplot2)
-if(!"textcat" %in% rownames(installed.packages())) {install.packages("textcat")}
+if (!"textcat" %in% rownames(installed.packages())) {
+  install.packages("textcat")
+}
 library(textcat)
-if(!"topicmodels" %in% rownames(installed.packages())) {install.packages("topicmodels")}
-if(!"stm" %in% rownames(installed.packages())) {install.packages("stm")}
+if (!"topicmodels" %in% rownames(installed.packages())) {
+  install.packages("topicmodels")
+}
+if (!"stm" %in% rownames(installed.packages())) {
+  install.packages("stm")
+}
 library(stm)
 library(topicmodels)
 library(tm)
 library(lsa)
-if(!"LDAvis" %in% rownames(installed.packages())) {install.packages("LDAvis")}
+if (!"LDAvis" %in% rownames(installed.packages())) {
+  install.packages("LDAvis")
+}
 library(LDAvis)
 library(udpipe)
-if(!"countrycode" %in% rownames(installed.packages())) {install.packages("countrycode")}
+if (!"countrycode" %in% rownames(installed.packages())) {
+  install.packages("countrycode")
+}
 library(countrycode)
 library(proustr)
 library(tidygeocoder)
 library(maps)
 library(viridis)
 library(gt)
-library(xlsx)
+library(readxl)
+if (!"bit64" %in% rownames(installed.packages())) {
+  install.packages("bit64")
+}
+library(bit64)
+install.packages("webshot2")
+library(webshot2)
 
-# # Importation des fichiers xml
-# list.files()
-liste_fichiers <- list.files("donnees/plein_texte/FR/", pattern = ".xls")
-liste_fichiers_long <- paste0("donnees/plein_texte/FR/", liste_fichiers)
+
+# Importation des fichiers xml
+
+liste_fichiers <-
+  list.files("donnees/zone_index/", pattern = ".xls")
+liste_fichiers_long <- paste0("donnees/zone_index/", liste_fichiers)
 
 # Lecture des fichiers xml
-liste_read <- lapply(liste_fichiers_long, read.xlsx, 1)
+liste_read <- lapply(liste_fichiers_long, read_xls, 1)
 
 # assemblage de la liste en df
 corpus <- do.call(bind_rows, liste_read)
 setDT(corpus)
-corpus <- corpus[!Title %in% c("Éditorial", "Comments", "Conclusions",
-"Francophony[ies]", "Multiple Francophones", "Opening Address", "Advertisement 11 -- No Title")]
+corpus <-
+  corpus[!Title %in% c(
+    "Éditorial",
+    "Comments",
+    "Conclusions",
+    "Francophony[ies]",
+    "Multiple Francophones",
+    "Opening Address",
+    "Advertisement 11 -- No Title"
+  )]
 
 # Réduction de la structure
-corpus <- corpus[!documentType %in% c("review", "Book Review") & !Authors == "[Unknown]" & !duplicated(Title)]
-corpus <- corpus[, c("Authors", "Title", "Abstract", "StoreId", "ArticleType",
-                         "documentType", "isbn", "language", "languageOfSummary",
-                         "year", "pubdate", "classificationCodes","identifierKeywords",
-                         "majorClassificationCodes", "subjectClassifications",
-                         "subjectTerms", "subjects")]
+corpus <-
+  corpus[!documentType %in% c("Review", "Book Review") &
+           !Authors == "[Unknown]" & !duplicated(Title)]
+corpus <-
+  corpus[, c(
+    "Authors",
+    "Title",
+    "Abstract",
+    "StoreId",
+    "ArticleType",
+    "documentType",
+    "isbn",
+    "language",
+    "languageOfSummary",
+    "year",
+    "pubdate",
+    "classificationCodes",
+    "identifierKeywords",
+    "majorClassificationCodes",
+    "subjectClassifications",
+    "subjectTerms",
+    "subjects"
+  )]
+table(corpus_abs_tr_en$ArticleType)
 
 # # Correction des types de données
-# corpus[, year:=as.integer(year)]
-# 
-# corpus$languageOfSummaryTextCat <- textcat(corpus$Abstract)
-# corpus$languageOfTitleTextCat <- textcat(corpus$Title)
-# 
-# # Inspection
-# corpus[languageOfTitleTextCat == "french", .(Title)][1:100]
-# 
-# 
-# # Ordre des colonnes
-# setcolorder(corpus, neworder = c("Title", "Abstract", "languageOfSummaryTextCat",
-#                                  "StoreId", "ArticleType", "documentType", "isbn",
-#                                  "language","year", "classificationCodes",
-#                                  "identifierKeywords", "majorClassificationCodes", 
-#                                  "subjectClassifications","subjectTerms", "subjects"))
-# 
-# # Correction
-# corpus <- corpus[!duplicated(Title)]
+corpus[, year := as.integer(year)]
+
+# Examen de la structure et élimination des "Reviews"
+corpus[!Abstract == "", .N]
+table(corpus$documentType)
+
+# ================================> Correction de données après examen
+# Correction d'années
 # corpus[Title == "Towards an Independent and Ethnically Pure Flanders", year:=1994]
 # corpus[Title == "Translating African Literature from French into English", year:=1994]
 # corpus[Title == "Towards an Independent and Ethnically Pure Flanders", year:=1994]
-# 
+
+# Correction de langue de résumés
 # corpus[Title == "On Onesime Reclus's Language Conception", languageOfTitleTextCat:="english"]
 # corpus[Title == "Colonial conscripts. The Tirailleurs sénégalais in French West Africa, 1857-1960", languageOfTitleTextCat:="english"]
 # corpus <- corpus[!Title %like% "Reviews\\s+--" & !Title %like% "Review\\s?$"]
@@ -94,19 +130,26 @@ corpus <- corpus[, c("Authors", "Title", "Abstract", "StoreId", "ArticleType",
 # corpus <- corpus[Title == "Daveluy, Michelle, 2006. Les langues étendards. Allégeances langagières en français parlé. Québec: Éditions Nota Bene, 2006, 131 pp. 2 89518 155 1", Title:="Les langues étendards. Allégeances langagières en français parlé"]
 # corpus <- corpus[Title == "Brasseur, Patrice et Falkert, Anika, Français d'Amérique: approches morphosyntaxiques. Agence Intergouvernementale de la Francophonie, Paris: L'Harmattan, 2005, 329 pp. 2 74759 596 X", Title:="Français d'Amérique: approches morphosyntaxiques"]
 # 
-# 
+# Nettoyage des résumés
 # corpus$Title <- str_remove_all(corpus$Title, "I:\\s|II:\\s|III:\\s")
 # corpus$Title <- str_remove_all(corpus$Title, "Quelques themes - |Quelques formes - ")
 # corpus$Title <- str_replace_all(corpus$Title, "&amp;snot;", "e")
 # corpus$Title <- str_remove_all(corpus$Title, "&lt;&lt;|IV. ")
 # corpus$Title <- str_remove_all(corpus$Title, "&lt;&lt;|IV. ")
-# 
+
+# Examen des résumés
 # corpus[languageOfTitleTextCat == "french", .(Title)][201:300]
-# 
-# # Transfert de la structure de données dans OpenRefine: les modifications à faire sont trop nombreuses pour les faire dans R
+
+
+# Transfert de la structure de données dans OpenRefine: les modifications à faire sont trop nombreuses pour les faire dans R - 
+# 69 doublons ont été supprimés dans OpenRefine
 # fwrite(corpus, "~/Downloads/francophonie.csv")
 
+# Lecture de la structure nettoyée
 corpus_abs_tr_en <- fread("donnees/20221105_PB_corpus_traduit_georeference.csv")
+corpus_abs_tr_en$StoreId <- corpus_abs_tr_en$StoreId/1
+str(corpus_abs_tr_en)
+
 # corpus_abs_tr_en[, `:=`(language=NULL,
 #                      languageOfSummary=NULL)]
 # 
@@ -128,7 +171,6 @@ rm(list=setdiff(ls(), "corpus_abs_tr_en"))
 ########################################## Enrichissement du corpus ==> ajout d'une variable lieux
 # corp_abs <- corpus[!Abstract == "" & !is.na(Abstract)]
 
-
 # Importation d'un tableau des villes du monde 
 # library(maps)
 
@@ -144,8 +186,6 @@ setDT(cities)
 large_cities <- cities[pop>300000]
 
 cities_regex <- paste0(large_cities$name, collapse = "\\b|\\b")
-
-
 
 # Importation d'un tableau avec tous les noms de pays (extension countryname)+création regex
 
@@ -210,7 +250,7 @@ setcolorder(
 )
 
 corpus_abs_tr_en[, StoreId:=(StoreId/1)]
-
+str(corpus_abs_tr_en)
 # Élimination de toutes les parenthèses
 corpus_abs_tr_en[, `:=`(
   Ti_tr_en_unaccent = str_remove_all(Ti_tr_en_unaccent, "\\(([^\\)]+)\\)"),
@@ -603,6 +643,24 @@ titres_villes_exemple_gt|>gtsave(filename = "resultats/20221105_PB_titres_villes
 
 
 
+# Distribution par décennies
+slicing_f <- function(x){
+  decennies <- factor(paste0(str_sub(x, 1,3),0))
+  return(decennies)
+}
+lire_filtree_qc_exo[, .(doc_id, annee_de_publication)][, decennies:=slicing_f(annee_de_publication)][,.N, by="decennies"]
+ventilation_decennies <- corpus_abs_tr_en[, .(StoreId, year)][, decennies:=slicing_f(year)][,.N, by="decennies"][order(decennies, decreasing=TRUE)][-1]
+
+ventilation_decennies_gt <- gt(ventilation_decennies) |>tab_header(
+  title = "Ventilation du corpus par décennies")|>
+  cols_label(decennies = "Décennie",
+             N = "Nombre de documents")|>
+  tab_source_note(
+    source_note = md("Données: ProQuest, 2022")
+  )
+ventilation_decennies_gt|>gtsave(filename = "resultats/20221124_PB_ventilation_decennies.png")
+
+
 ############################################## Silhouette du corpus - distribution chronologique
 ggplot(corpus_abs_tr_en_sep[, .(StoreId, year)][,.N, by="year"], aes(x=year, y=N))+
   geom_bar(stat = "identity")+
@@ -626,12 +684,6 @@ corpus_abs_tr_en_sep[, StoreId:=(StoreId/1)]
 setnames(corpus_abs_tr_en_sep, old = c("StoreId", "Abstract"), new = c("doc_id", "text"))
 
 
-
-
-
-
-
-
 ############### Note: pour contrôler les paramètres de prétraitement, exécuter ceux-ci préalablement à la fonction textPreprocessor de stm
 
 # corpus_abs_tr_en_sep[, text:=ifelse(Abs_tr_en_unaccent!="", Abs_tr_en_unaccent, Ti_tr_en_unaccent)]
@@ -641,7 +693,7 @@ corpus_abs_tr_en_sep_reduit <- corpus_abs_tr_en_sep[Abs_tr_en_unaccent !=""]
 saveRDS(corpus_abs_tr_en_sep_reduit, "donnees/20221120_PB_donnees_pour_topicmodels.RDS")
 
 
-# * default parameters
+# L'astérisque * indique les paramètres par défaut
 processed_en <- textProcessor(corpus_abs_tr_en_sep_reduit$Abs_tr_en_unaccent, metadata = as.data.frame(corpus_abs_tr_en_sep_reduit[, .(StoreId, Abs_tr_en_unaccent, ArticleType, documentType, year, identifierKeywords, subjects,`villes 1`, `villes 2`,`villes 3`,`pays 1`,`pays 2`,`pays 3`,`continents 1`,`continents 2`,`continents 3`)]),
                            lowercase = TRUE, #*
                            removestopwords = TRUE, #*
@@ -815,55 +867,11 @@ labelTopics(Third_STM)
 findThoughts(Third_STM, texts = meta$year,n = 1, topics = 1:37)
 
 
-
-# # # Graphical display of topic correlations
-# # 
-# topic_correlation <- topicCorr(Third_STM)
-# str(topic_correlation)
-# attributes(topic_correlation)
-# str(topic_correlation$poscor)
-# 
-# plot.topicCorr <- function(x, topics=NULL,
-#                            vlabels=NULL, layout=NULL,
-#                            vertex.color="white", vertex.label.cex=.65,
-#                            vertex.label.color="black",vertex.size=NULL, ...){
-#   if(!requireNamespace("igraph", quietly=TRUE)) stop("Install the igraph package to use this function.")
-#   if(is.null(topics)) topics <- 1:nrow(x$posadj)
-#   x <- x$posadj[topics, topics]
-# 
-#   g <- igraph::graph.adjacency(x, mode="undirected", weighted=TRUE, diag=FALSE)
-#   if(is.null(vlabels)) vlabels <-  paste("Topic", topics)
-#   igraph::E(g)$size <- 1
-#   igraph::E(g)$lty <- 2
-#   igraph::E(g)$color <- "green"
-#   igraph::V(g)$label <- vlabels
-#   if(is.null(layout)) layout <- igraph::layout.fruchterman.reingold
-#   igraph::plot.igraph(g, layout=layout, vertex.color=vertex.color, vertex.label.cex=vertex.label.cex,
-#                       vertex.label.color=vertex.label.color, vertex.size=vertex.size, ...)
-# }
-# 
-# plot.topicCorr(topic_correlation,
-#                vlabels = noms_themes_dt$theme_nom)
-
-
-
 # Wordcloud:topic 17 with word distribution
 labelTopics(Third_STM)
 set.seed(837)
 library(wordcloud)
 stm::cloud(Third_STM, topic=1, scale=c(4,0.5))
-
-
-
-
-# Working with meta-data 
-
-set.seed(837)
-predict_topics <- estimateEffect(formula = 1:10 ~ `year`, 
-                               stmobj = Third_STM, 
-                               metadata = out$meta, 
-                               uncertainty = "Global",
-                               prior = 1e-5)
 
 
 
@@ -878,8 +886,6 @@ str(out$documents)
 
 stm::cloud(Third_STM, topic=10, scale=c(4,0.3))
 
-
-########################## Évolution de thèmes
 
 
 

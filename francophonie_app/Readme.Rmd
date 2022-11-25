@@ -3,8 +3,8 @@ output: html_document
 runtime: shiny
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, results='hide'}
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ### Contexte
@@ -26,7 +26,7 @@ Les calculs statistiques, les graphiques et l'application ont été réalisés d
 ### Extensions R utilisées
 - [servr]("https://cran.r-project.org/web/packages/servr/index.html")
 - [shiny]("https://cran.r-project.org/web/packages/shiny/index.html")
-- [LDAvis]("https://cran.r-project.org/web/packages/LDAvis/index.html")]
+- [LDAvis]("https://cran.r-project.org/web/packages/LDAvis/index.html")
 - [deeplr]("https://cran.r-project.org/web/packages/deeplr/index.html")
 - [wordcloud2]("https://cran.r-project.org/web/packages/wordcloud2/index.html")
 - [data.table]("https://cran.r-project.org/web/packages/data.table/index.html")

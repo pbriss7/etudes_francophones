@@ -5,9 +5,9 @@ account: pbrissette
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 7688927
-bundleId: 6540025
+bundleId: 6549786
 url: https://pbrissette.shinyapps.io/francophonie_app/
-when: 1669058221.22154
-lastSyncTime: 1669058221.22155
+when: 1669271409.48018
+lastSyncTime: 1669271409.48019
 asMultiple: FALSE
 asStatic: FALSE

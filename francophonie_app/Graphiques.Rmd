@@ -1,0 +1,37 @@
+---
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+<!-- ```{r setup, include=FALSE} -->
+<!-- corpus_abs_tr_en_sep <- -->
+<!--   fread("donnees/20221106-PB-corpus-traduit-georeference-separe.csv") -->
+<!-- corpus_abs_tr_en_sep <- -->
+<!--   corpus_abs_tr_en_sep[!is.na(Title_tr_en) & !Title_tr_en == ""] -->
+
+<!-- ggplot(corpus_abs_tr_en_sep[, .(StoreId, year)][,.N, by="year"], aes(x=year, y=N))+ -->
+<!--   geom_bar(stat = "identity")+ -->
+<!--   geom_text(aes(label = N), -->
+<!--             hjust = 0.6, -->
+<!--             vjust = -1, -->
+<!--             size = 1.8, -->
+<!--             colour = "black")+ -->
+<!--   theme_classic()+ -->
+<!--   labs(title = "Distribution annuelle des notices du corpus", -->
+<!--        subtitle = "Mot de la requête: «francophon*»", -->
+<!--        caption = "Données: ProQuest, 2022")+ -->
+<!--   ylab("Nombre de notices")+ -->
+<!--   xlab("Années") -->
+<!-- ``` -->
+
+### Villes évoquées dans les titres des notices 
+![](graphiques/20221105_PB_DistribChronologique_corpus_trad_en.png)
+
+
+### Villes évoquées dans les titres des notices 
+![](graphiques/20221106_PB_Distrib_geo_villes.png)
