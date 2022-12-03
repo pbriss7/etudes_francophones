@@ -1,7 +1,5 @@
 # Traitement des données issues de la requête "francophon*" dans ProQuest (174 bases de données)
 
-
-setwd("~/github/PERSONNEL/Francophonie_ProQuest")
 library(data.table)
 library(dplyr)
 library(stringr)
@@ -39,7 +37,7 @@ if (!"bit64" %in% rownames(installed.packages())) {
   install.packages("bit64")
 }
 library(bit64)
-install.packages("webshot2")
+# install.packages("webshot2")
 library(webshot2)
 
 
@@ -148,7 +146,8 @@ table(corpus$documentType)
 # Lecture de la structure nettoyée
 corpus_abs_tr_en <- fread("donnees/20221105_PB_corpus_traduit_georeference.csv")
 corpus_abs_tr_en$StoreId <- corpus_abs_tr_en$StoreId/1
-str(corpus_abs_tr_en)
+
+
 
 # corpus_abs_tr_en[, `:=`(language=NULL,
 #                      languageOfSummary=NULL)]
@@ -293,7 +292,10 @@ corpus_abs_tr_en_sep <-
 corpus_abs_tr_en_sep <-
   corpus_abs_tr_en_sep[!is.na(Title_tr_en) & !Title_tr_en == ""]
 
+# Calcul de la longueur moyenne des résumés
+corpus_abs_tr_en_sep[!Abs_tr_en_unaccent == "" &!is.na(Abs_tr_en_unaccent), long_resume:=nchar(Abs_tr_en_unaccent)]
 
+mean(corpus_abs_tr_en_sep[!Abs_tr_en_unaccent == "" &!is.na(Abs_tr_en_unaccent), .(long_resume)]$long_resume)
 
 # Liste de tous les pays accompagnés des identifiants
 pays_melt <- melt(
@@ -304,7 +306,7 @@ pays_melt <- melt(
 )
 
 pays_melt <- pays_melt[!nom_pays == ""]
-
+pays_melt
 ggplot(pays_melt[, .N, "nom_pays"][order(N, decreasing = T)][1:25][!nom_pays ==
                                                                      "NA" & !nom_pays == "Brunswick"], aes(x = reorder(nom_pays, N), y = N)) +
   geom_bar(stat = "identity") +
@@ -383,9 +385,19 @@ ville_melt <- melt(
 
 # ville_melt <- ville_melt[!nom_ville==""&!nom_ville %in% c()]
 
-
 ville_melt_N <- ville_melt[, .N, nom_ville][order(N, decreasing = T)]
 ville_melt_N[nom_ville == "Orleans", nom_ville:="New Orleans"]
+
+freq_ville_gt <- gt(ville_melt_N[1:15][!nom_ville %in% c("", "Quebec", "Benin")])|>tab_header(
+  title = "Fréquences des noms de villes dans les titres")|>
+  cols_label(nom_ville = "Ville")|>
+  tab_source_note(
+    source_note = md("Données: ProQuest, 2022")
+  )
+
+gtsave(freq_ville_gt, filename = "resultats/20221125_PB_freq_ville_gt.png")
+
+
 ggplot(ville_melt_N[!nom_ville == "" &
                                        !is.na(nom_ville) &
                                        !nom_ville == "NA" &
@@ -717,7 +729,7 @@ processed_en <- textProcessor(corpus_abs_tr_en_sep_reduit$Abs_tr_en_unaccent, me
                            v1 = FALSE) #*
 
 saveRDS(processed_en, "donnees/20221120_PB_processed_en.RDS")
-
+processed_en <- readRDS("donnees/20221120_PB_processed_en.RDS")
 # filter out terms that don’t appear in more than 10 documents,
 out <- prepDocuments(processed_en$documents, processed_en$vocab, processed_en$meta, lower.thresh=10)
 
@@ -830,7 +842,7 @@ system.time({
 })
 
 saveRDS(Third_STM, "donnees/20221120_PB_Third_STM.RDS")
-
+Third_STM <- readRDS("donnees/20221120_PB_Third_STM.RDS")
 #Plot
 png("resultats/20221107_PB_Proportions_36themes_mots_cles.png")
 plot(Third_STM,

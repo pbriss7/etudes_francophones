@@ -37,7 +37,11 @@ Les calculs statistiques, les graphiques et l'application ont été réalisés d
 - [stringr]("https://cran.r-project.org/web/packages/stringr/index.html")
 - [rmarkdown]("https://cran.r-project.org/web/packages/rmarkdown/index.html")
 
+
 Pour toute question:
 pascal.brissette@mcgill.ca
 
 Ont contribué au moissonnage des données et à la traduction des résumés: Yu Shen Shi (U. McGill) et Amélie Ducharme (U. McGill)
+
+### Référence
+Carson Sievert et Kenneth E. Shirley, "LDAvis: A method for visualizing and interpreting topics", Proceedings of the Workshop on Interactive Language Learning, Visualization, and Interfaces, pages 63-70. <https://aclanthology.org/W14-3110.pdf>
