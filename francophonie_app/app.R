@@ -9,7 +9,7 @@ library(topicmodels)
 library(text2vec)
 library(markdown)
 
-# Ajout d'une ligne
+
 # - Importation des données ----
 # Note: les chemins doivent renvoyer à ceux contenus à l'intérieur de l'application.
 dmt <- readRDS("donnees/20221121_PB_dtm.RDS")
