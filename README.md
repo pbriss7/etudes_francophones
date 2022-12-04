@@ -6,17 +6,19 @@ Ce projet R utilise les données produites par ProQuest (https://www.proquest.co
 ### Données utilisées
 Les données ont été rassemblées à travers ProQuest le 26 octobre 2022. Elles forment un corpus de 2992 documents, composé au moyen d'une requête lancée dans les champs d'indexation "Sujet" de 174 bases de données. Le motif de la requête est "francophon\*". Le résultat a été limité aux publications savantes (mémoires et thèses, livres, articles de fond, textes de conférences). Les distributions chronologique et géographique du corpus ont été faites à partir des 2992 notices qui le composent. Le modèle des topics a été fait à partir des 2545 résumés disponibles (85% du corpus), après traduction vers l'anglais de 607 d'entre eux. La traduction a été faite avec l'API de Deepl ("https://www.deepl.com/docs-api").
 
+### Langage et IDE
+Les scripts sont écrits en langage R, version 4.2.2. Pour l’exécuter, il faut au préalable installer R (https://cran.r-project.org/). L’environnement de développement intégré (IDE)  POSIT RStudio (https://posit.co/) a été utilisé.
+
 ### Prétraitement
 Le script code/20221023_PB_franco_ProQuest_en_lieux_topic.R expose le prétraitement du corpus. La majeure partie du nettoyage des données (corrections et uniformisation de titres) et quelques opérations de prétraitement indiqués dans le script ont été faites dans OpenRefine (https://openrefine.org/).
 
 ### Annotation du corpus
 Les noms de villes, de pays et de continents ont été géoréférencés avec l'API de Nominatim ("https://nominatim.org/"), à l'aide de l'extension tidygeocoder. 
 
-### Statistiques, graphiques et application
-Les calculs statistiques, les graphiques et l'application ont été réalisés dans l'environnement de développement intégré RStudio- Posit ("https://posit.co/"). L'application est écrite en langage R. 
-
 ### Pour toute question
 pascal.brissette@mcgill.ca
+
+### Contributions
 Ont contribué au moissonnage des données et à la traduction des résumés: Yu Shen Shi (U. McGill) et Amélie Ducharme (U. McGill)
 
 ### Informations détailléeés de la session
