@@ -33,8 +33,6 @@ corpus_abs_tr_en_sep_reduit <- readRDS("donnees/20221121_PB_corpus_abs_tr_en_sep
 
 # saveRDS(corpus_abs_tr_en_sep_reduit, "~/github/PERSONNEL/Francophonie_ProQuest/francophonie_app/donnees/20221121_PB_corpus_abs_tr_en_sep_reduit.RDS")
 
-
-
 # - Application ----
 ui <- navbarPage(
   title = "Topics des études francophones",
@@ -43,7 +41,6 @@ ui <- navbarPage(
            fluidPage(
              
              headerPanel(""),
-             # titlePanel(p(h2("Topics des études francophones",style = "color:#4d3a7d"))),
              
              #sidebarPanel(
              wellPanel(tags$style(type="text/css", '#leftPanel { width:200px; float:left;}'), style = "background: lightgrey",
@@ -57,11 +54,8 @@ ui <- navbarPage(
                tabPanel("", hr(),helpText(h2("Choisissez un topic")),  visOutput('visChart')))
            )
   ),
-  # tabPanel("Graphiques",
-  #          includeMarkdown("Graphiques.Rmd")
-  #          ),
   tabPanel("Documentation",
-           includeMarkdown("Readme.Rmd")
+           includeMarkdown("Contexte.Rmd")
            )
 )
 

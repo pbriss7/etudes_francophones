@@ -1,31 +1,16 @@
 # Traitement des données issues de la requête "francophon*" dans ProQuest (174 bases de données)
+# Les lignes de commande précédées d'un croisillon (#) ne devraient pas être exécutées. Elles constitutent des traces du processus.
 
 library(data.table)
 library(dplyr)
 library(stringr)
 library(ggplot2)
-if (!"textcat" %in% rownames(installed.packages())) {
-  install.packages("textcat")
-}
 library(textcat)
-if (!"topicmodels" %in% rownames(installed.packages())) {
-  install.packages("topicmodels")
-}
-if (!"stm" %in% rownames(installed.packages())) {
-  install.packages("stm")
-}
 library(stm)
 library(topicmodels)
 library(tm)
 library(lsa)
-if (!"LDAvis" %in% rownames(installed.packages())) {
-  install.packages("LDAvis")
-}
-library(LDAvis)
 library(udpipe)
-if (!"countrycode" %in% rownames(installed.packages())) {
-  install.packages("countrycode")
-}
 library(countrycode)
 library(proustr)
 library(tidygeocoder)
@@ -33,69 +18,70 @@ library(maps)
 library(viridis)
 library(gt)
 library(readxl)
-if (!"bit64" %in% rownames(installed.packages())) {
-  install.packages("bit64")
-}
 library(bit64)
-# install.packages("webshot2")
 library(webshot2)
+library(spData)
+library(quanteda)
+library(leafem)
+devtools::install_github("cpsievert/LDAvis")
+library(LDAvis)
 
 
-# Importation des fichiers xml
+# Importation des fichiers xml (NE PAS EXÉCUTER)
 
-liste_fichiers <-
-  list.files("donnees/zone_index/", pattern = ".xls")
-liste_fichiers_long <- paste0("donnees/zone_index/", liste_fichiers)
+# liste_fichiers <-
+#   list.files("donnees/zone_index/", pattern = ".xls")
+# liste_fichiers_long <- paste0("donnees/zone_index/", liste_fichiers)
+# 
+# # Lecture des fichiers xml
+# liste_read <- lapply(liste_fichiers_long, read_xls, 1)
+# 
+# # assemblage de la liste en df
+# corpus <- do.call(bind_rows, liste_read)
+# setDT(corpus)
+# corpus <-
+#   corpus[!Title %in% c(
+#     "Éditorial",
+#     "Comments",
+#     "Conclusions",
+#     "Francophony[ies]",
+#     "Multiple Francophones",
+#     "Opening Address",
+#     "Advertisement 11 -- No Title"
+#   )]
+# 
+# # Réduction de la structure
+# corpus <-
+#   corpus[!documentType %in% c("Review", "Book Review") &
+#            !Authors == "[Unknown]" & !duplicated(Title)]
+# corpus <-
+#   corpus[, c(
+#     "Authors",
+#     "Title",
+#     "Abstract",
+#     "StoreId",
+#     "ArticleType",
+#     "documentType",
+#     "isbn",
+#     "language",
+#     "languageOfSummary",
+#     "year",
+#     "pubdate",
+#     "classificationCodes",
+#     "identifierKeywords",
+#     "majorClassificationCodes",
+#     "subjectClassifications",
+#     "subjectTerms",
+#     "subjects"
+#   )]
+# table(corpus_abs_tr_en$ArticleType)
+# 
+# # # Correction des types de données
+# corpus[, year := as.integer(year)]
 
-# Lecture des fichiers xml
-liste_read <- lapply(liste_fichiers_long, read_xls, 1)
-
-# assemblage de la liste en df
-corpus <- do.call(bind_rows, liste_read)
-setDT(corpus)
-corpus <-
-  corpus[!Title %in% c(
-    "Éditorial",
-    "Comments",
-    "Conclusions",
-    "Francophony[ies]",
-    "Multiple Francophones",
-    "Opening Address",
-    "Advertisement 11 -- No Title"
-  )]
-
-# Réduction de la structure
-corpus <-
-  corpus[!documentType %in% c("Review", "Book Review") &
-           !Authors == "[Unknown]" & !duplicated(Title)]
-corpus <-
-  corpus[, c(
-    "Authors",
-    "Title",
-    "Abstract",
-    "StoreId",
-    "ArticleType",
-    "documentType",
-    "isbn",
-    "language",
-    "languageOfSummary",
-    "year",
-    "pubdate",
-    "classificationCodes",
-    "identifierKeywords",
-    "majorClassificationCodes",
-    "subjectClassifications",
-    "subjectTerms",
-    "subjects"
-  )]
-table(corpus_abs_tr_en$ArticleType)
-
-# # Correction des types de données
-corpus[, year := as.integer(year)]
-
-# Examen de la structure et élimination des "Reviews"
-corpus[!Abstract == "", .N]
-table(corpus$documentType)
+# # Examen de la structure et élimination des "Reviews"
+# corpus[!Abstract == "", .N]
+# table(corpus$documentType)
 
 # ================================> Correction de données après examen
 # Correction d'années
@@ -143,11 +129,9 @@ table(corpus$documentType)
 # 69 doublons ont été supprimés dans OpenRefine
 # fwrite(corpus, "~/Downloads/francophonie.csv")
 
-# Lecture de la structure nettoyée
+########################################## Lecture de la structure nettoyée
 corpus_abs_tr_en <- fread("donnees/20221105_PB_corpus_traduit_georeference.csv")
 corpus_abs_tr_en$StoreId <- corpus_abs_tr_en$StoreId/1
-
-
 
 # corpus_abs_tr_en[, `:=`(language=NULL,
 #                      languageOfSummary=NULL)]
@@ -165,38 +149,28 @@ corpus_abs_tr_en$StoreId <- corpus_abs_tr_en$StoreId/1
 # 
 # setcolorder(corpus_abs_tr_en, neworder = c("StoreId", "Title_tr_en", "Abs_tr_en"))
 
-rm(list=setdiff(ls(), "corpus_abs_tr_en"))
-
 ########################################## Enrichissement du corpus ==> ajout d'une variable lieux
-# corp_abs <- corpus[!Abstract == "" & !is.na(Abstract)]
 
 # Importation d'un tableau des villes du monde 
-# library(maps)
-
 cities <- maps::world.cities
 setDT(cities)
 
-# french_countries <- fread("donnees/20221105_WorldPopulationReview_french_speaking_countries.csv")
-
-# all_french_cities <- cities[country.etc %in% french_countries$country]
-
-# all_french_large_cities <- all_french_cities[pop>75000]
-
+# Filtrage des noms de villes ayant plus de 300 000 habitants
 large_cities <- cities[pop>300000]
 
+# Création d'une expression régulière avec les noms de villes
 cities_regex <- paste0(large_cities$name, collapse = "\\b|\\b")
 
-# Importation d'un tableau avec tous les noms de pays (extension countryname)+création regex
+# Importation d'un tableau avec tous les noms de pays (extension countryname) + création d'une expression régulière
 
-library(spData)
 data(world)
 world_poly <- spData::world %>% as.data.table()
-
 
 world_poly <- world_poly %>% select(iso_a2, name_long, continent, geom)
 
 setnames(world_poly, new = c("iso_a2", "nom_pays", "continent", "geom"))
 
+# Corrections
 world_poly[, nom_pays:=nom_pays %>% str_replace_all(
   c("Democratic Republic of the Congo"="D\\.?(emocratic)?.?R\\.?(epublic)?.([Oo]f.[Tt]he.)?Congo",
     "Côte d'Ivoire"="(Côte d'Ivoire)|(Ivory Coast)",
@@ -230,11 +204,11 @@ continents_names <-
 continents_regex <- paste0(continents_names, collapse = "\\b|\\b")
 # On utilise ces regex pour étiqueter les noms propres correspondant à un nom de ville ou de pays
 
-# # Élimination de tous les accents
-# corpus_abs_tr_en[, `:=`(
-#   Abs_tr_en_unaccent = proustr::pr_unacent(Abs_tr_en),
-#   Ti_tr_en_unaccent = proustr::pr_unacent(Title_tr_en)
-# )]
+# Élimination de tous les accents
+corpus_abs_tr_en[, `:=`(
+  Abs_tr_en_unaccent = proustr::pr_unacent(Abs_tr_en),
+  Ti_tr_en_unaccent = proustr::pr_unacent(Title_tr_en)
+)]
 
 
 setcolorder(
@@ -248,8 +222,6 @@ setcolorder(
   )
 )
 
-corpus_abs_tr_en[, StoreId:=(StoreId/1)]
-str(corpus_abs_tr_en)
 # Élimination de toutes les parenthèses
 corpus_abs_tr_en[, `:=`(
   Ti_tr_en_unaccent = str_remove_all(Ti_tr_en_unaccent, "\\(([^\\)]+)\\)"),
@@ -286,7 +258,6 @@ fwrite(corpus_abs_tr_en,
 # Importation de la structure enrichie
 corpus_abs_tr_en_sep <-
   fread("donnees/20221106-PB-corpus-traduit-georeference-separe.csv")
-
 
 # Élimination des notices sans titre
 corpus_abs_tr_en_sep <-
@@ -508,7 +479,6 @@ freq_cooc_pays_gt|>gtsave(filename = "resultats/20221106_PB_freq_cooc_pays_gt.pn
 
 
 # # Transformation des lon/lat en simple feature (SF)
-library(sf)
 # pays_melt_geo_N_sf <- pays_melt_geo_N %>%
 #   st_as_sf(
 #     coords = c("long", "lat"),
@@ -538,15 +508,8 @@ mapview_pays <- pays_poly_sf[, c("nom_pays", "N", "geom")] %>%
           alpha.regions = 0.4
           )
 
-# # install.packages("leafem")
-# # library(leafem)
-# addStaticLabels(mapview_pays, pays_poly_sf[, c("nom_pays", "N", "geom")],
-#                 label=pays_poly_sf[, c("nom_pays", "N", "geom")]$N)
 
 mapshot(mapview_pays, url = "resultats/20221105_PB_carte_pays_resumes.html")
-
-
-
 
 ################ Mapping des noms de continents dans les résumés
 
@@ -574,8 +537,6 @@ mapshot(mapview_continent, url = "resultats/20221105_PB_carte_continents_resumes
 # Construction d'un concordancier
 
 all_abstracts <- paste(corpus_abs_tr_en_sep$Abs_tr_en_unaccent, collapse = " ")
-
-library(quanteda)
 
 afrique_corp <- corpus(corpus_abs_tr_en_sep,
                        docid_field = "StoreId",
@@ -739,8 +700,6 @@ docs <- out$documents
 vocab <- out$vocab
 meta <-out$meta
 
-str(out)
-
 # Construire un premier modèle
 set.seed(831)
 system.time({
@@ -886,13 +845,11 @@ library(wordcloud)
 stm::cloud(Third_STM, topic=1, scale=c(4,0.5))
 
 
-
 ############ Visualisation dynamique des thèmes et des mots-clés de chacun #######################
 str(toLDAvis(Third_STM,
          docs = out$documents,
          reorder.topics = FALSE))
-# devtools::install_github("cpsievert/LDAvis")
-# library(LDAvis)
+
 
 str(out$documents)
 
