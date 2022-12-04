@@ -9,8 +9,11 @@ Les données ont été rassemblées à travers ProQuest le 26 octobre 2022. Elle
 ### Langage et IDE
 Les scripts sont écrits en langage R, version 4.2.2. Pour l’exécuter, il faut au préalable installer R (https://cran.r-project.org/). L’environnement de développement intégré (IDE)  POSIT RStudio (https://posit.co/) a été utilisé.
 
+### Ouverture du projet
+Pour éviter tout problème de référencement (path), commencer par ouvrir le projet Francophonie_ProQuest.Rproj.
+
 ### Prétraitement
-Le script code/20221023_PB_franco_ProQuest_en_lieux_topic.R expose le prétraitement du corpus. La majeure partie du nettoyage des données (corrections et uniformisation de titres) et quelques opérations de prétraitement indiqués dans le script ont été faites dans OpenRefine (https://openrefine.org/).
+Le script code/20221023_PB_franco_ProQuest_en_lieux_topic.R expose le prétraitement du corpus. La majeure partie du nettoyage des données (corrections et uniformisation de titres) et quelques opérations de prétraitement indiquées dans le script ont été faites dans OpenRefine (https://openrefine.org/).
 
 ### Annotation du corpus
 Les noms de villes, de pays et de continents ont été géoréférencés avec l'API de Nominatim ("https://nominatim.org/"), à l'aide de l'extension tidygeocoder. 
